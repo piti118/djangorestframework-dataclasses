@@ -23,3 +23,13 @@ jobs:
         run: tox --skip-missing-interpreters
       - name: Upload coverage
         run: codecov
+  mypy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Install dependencies
+        run: pip install mypy django-stubs djangorestframework-stubs
+      - name: Run mypy
+        run: mypy -p rest_framework_dataclasses
