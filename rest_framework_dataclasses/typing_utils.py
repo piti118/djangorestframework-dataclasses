@@ -15,7 +15,7 @@ Requirements for this module:
 Note that there was some promising development in the `typing_inspect` module, but it is still marked experimental and
 development seems to have stalled. Maybe in the future?
 """
-import collections
+import collections.abc
 import typing
 
 from .types import Final, Literal
@@ -34,7 +34,7 @@ except AttributeError:
     def get_origin(tp: type) -> type:
         return tp.__origin__ if isinstance(tp, GenericAlias) else None
 
-    def get_args(tp: type) -> type:
+    def get_args(tp: type) -> typing.Tuple:
         return tp.__args__ if isinstance(tp, GenericAlias) else ()
 
 # Some implementation notes:
@@ -207,10 +207,12 @@ def is_type_variable(tp: type) -> bool:
     return isinstance(tp, typing.TypeVar)
 
 
-def get_variable_type_substitute(tp: typing.TypeVar) -> type:
+def get_variable_type_substitute(tp: type) -> type:
     """
     Get the substitute for a variable type.
     """
+    assert isinstance(tp, typing.TypeVar)
+
     if len(tp.__constraints__) > 0:
         return typing.Union[tp.__constraints__]
     if tp.__bound__ is not None:

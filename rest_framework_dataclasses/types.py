@@ -1,6 +1,6 @@
 # Some type definitions that can be useful.
 
-from typing import Dict
+import typing
 
 try:
     # Python 3.8 and later
@@ -11,4 +11,7 @@ except ImportError:
 
 # Note that this doesn't actually work yet (https://stackoverflow.com/a/55240861)
 class Dataclass(Protocol):
-    __dataclass_fields__: Dict
+    __dataclass_fields__: typing.Dict
+
+    def __init__(self, **kwargs):
+        pass

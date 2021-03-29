@@ -2,18 +2,22 @@ import dataclasses
 import inspect
 import typing
 
+from typing import Dict, Generic, Optional, Type
+
 from rest_framework.utils.model_meta import RelationInfo
 
 from rest_framework_dataclasses import typing_utils
+from rest_framework_dataclasses.types import Dataclass
 
 T = typing.TypeVar('T')
+TDataclass = typing.TypeVar('TDataclass', bound=Dataclass)
 
 
 @dataclasses.dataclass
-class DataclassDefinition:
-    dataclass_type: type
-    fields: typing.Dict[str, dataclasses.Field]
-    field_types: typing.Dict[str, type]
+class DataclassDefinition(Generic[TDataclass]):
+    dataclass_type: Type[TDataclass]
+    fields: Dict[str, dataclasses.Field]
+    field_types: Dict[str, type]
 
 
 @dataclasses.dataclass
@@ -41,7 +45,7 @@ def get_dataclass_definition(dataclass_type: type) -> DataclassDefinition:
     return DataclassDefinition(dataclass_type, fields, types)
 
 
-def get_type_info(tp: type, default_value_type: typing.Optional[type] = None) -> TypeInfo:
+def get_type_info(tp: type, default_value_type: Optional[type] = None) -> TypeInfo:
     """
     Reduce iterable and optional types to their 'base' types.
     """
@@ -66,9 +70,6 @@ def get_type_info(tp: type, default_value_type: typing.Optional[type] = None) ->
     if typing_utils.is_type_variable(tp):
         tp = typing_utils.get_variable_type_substitute(tp)
 
-    if tp is typing.Any:
-        tp = None
-
     return TypeInfo(is_many, is_mapping, is_final, is_nullable, tp)
 
 
@@ -82,7 +83,7 @@ def get_relation_info(type_info: TypeInfo) -> RelationInfo:
         related_model=type_info.base_type,
         to_many=type_info.is_many,
         # as there's no foreign key, it also cannot reference a field on the referenced model
-        to_field=None,
+        to_field='',
         has_through_model=False,
         # we're never the model
         reverse=False

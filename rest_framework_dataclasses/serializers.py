@@ -5,7 +5,7 @@ import decimal
 import uuid
 from collections import OrderedDict
 from enum import Enum
-from typing import Any, Dict, Generic, Iterable, Mapping, Tuple, Type, TypeVar
+from typing import cast, Any, Dict, List, Generic, Iterable, Mapping, Tuple, Type, TypeVar
 
 import rest_framework.fields
 import rest_framework.serializers
@@ -43,9 +43,9 @@ def _strip_empty_sentinels(data: AnyT, instance: AnyT = None) -> AnyT:
         else:
             return type(data)(**values)
     elif isinstance(data, list):
-        return [_strip_empty_sentinels(item) for item in data]
+        return cast(AnyT, [_strip_empty_sentinels(item) for item in data])
     elif isinstance(data, dict):
-        return {key: _strip_empty_sentinels(value) for key, value in data.items()}
+        return cast(AnyT, {key: _strip_empty_sentinels(value) for key, value in data.items()})
     return data
 
 
@@ -66,7 +66,7 @@ class DataclassSerializer(rest_framework.serializers.Serializer, Generic[T]):
     """
 
     # The mapping of field types to serializer fields
-    serializer_field_mapping = {
+    serializer_field_mapping: Dict[type, Type[SerializerField]] = {
         int:                rest_framework.fields.IntegerField,
         float:              rest_framework.fields.FloatField,
         bool:               rest_framework.fields.BooleanField,
@@ -80,16 +80,17 @@ class DataclassSerializer(rest_framework.serializers.Serializer, Generic[T]):
         dict:               rest_framework.fields.DictField,
         list:               rest_framework.fields.ListField
     }
-    serializer_related_field = PrimaryKeyRelatedField
+    serializer_related_field: Type[SerializerField] = PrimaryKeyRelatedField
 
     # Unfortunately this cannot be an actual field as Python processes the class before it defines the class, but this
     # comes close enough.
     @property
-    def serializer_dataclass_field(self):
+    def serializer_dataclass_field(self) -> Type[SerializerField]:
         return DataclassSerializer
 
-    # Type hints
-    _declared_fields: Mapping[str, SerializerField]
+    # Type hints for parent fields
+    _declared_fields: Dict[str, SerializerField]
+    _validated_data: T
 
     # Override constructor to allow "anonymous" usage by passing the dataclass type and extra kwargs as a constructor
     # parameter instead of via a Meta class.
@@ -417,7 +418,7 @@ class DataclassSerializer(rest_framework.serializers.Serializer, Generic[T]):
             field_class = self.serializer_field_mapping[list]
 
         # If the base type is not specified or is any type, we don't have to bother creating the child field.
-        if type_info.base_type is None:
+        if type_info.base_type is Any:
             return field_class, {}
 
         # Recurse to build the child field (i.e. the field of every instance). We pass the extra kwargs that are
@@ -441,7 +442,7 @@ class DataclassSerializer(rest_framework.serializers.Serializer, Generic[T]):
         """
         try:
             field_class = field_utils.lookup_type_in_mapping(self.serializer_field_mapping, type_info.base_type)
-            field_kwargs = {}
+            field_kwargs: KWArgs = {}
 
             return field_class, field_kwargs
         except KeyError:
@@ -513,9 +514,9 @@ class DataclassSerializer(rest_framework.serializers.Serializer, Generic[T]):
         Create a read only field for dataclass methods and properties.
         """
         field_class = rest_framework.fields.ReadOnlyField
-        field_kwargs = {}
+        field_kwargs: KWArgs = {}
 
-        return field_class, field_kwargs
+        return rest_framework.fields.ReadOnlyField, field_kwargs
 
     def build_unknown_field(self, field_name: str) -> SerializerFieldDefinition:
         """
