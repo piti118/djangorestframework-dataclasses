@@ -121,10 +121,11 @@ class DataclassSerializer(rest_framework.serializers.Serializer, Generic[T]):
     def dataclass_definition(self) -> DataclassDefinition:
         # Determine the dataclass that we should operate on.
         if self.dataclass:
-            assert not hasattr(self, 'Meta'), (
-                "Class '{serializer_class}' may not have `Meta` attribute when instantiated with `dataclass` parameter."
-                .format(serializer_class=self.__class__.__name__)
-            )
+            # what is this for???
+            # assert not hasattr(self, 'Meta'), (
+            #     "Class '{serializer_class}' may not have `Meta` attribute when instantiated with `dataclass` parameter."
+            #     .format(serializer_class=self.__class__.__name__)
+            # )
 
             dataclass_type = self.dataclass
         else:
@@ -499,7 +500,11 @@ class DataclassSerializer(rest_framework.serializers.Serializer, Generic[T]):
         try:
             field_class = field_utils.lookup_type_in_mapping(self.serializer_field_mapping, type_info.base_type)
         except KeyError:
-            field_class = self.serializer_dataclass_field
+
+            if hasattr(type_info.base_type, 'serializer') and callable(type_info.base_type.serializer):
+                field_class = type_info.base_type.serializer()
+            else:
+                field_class = self.serializer_dataclass_field
 
         field_kwargs = {'dataclass': type_info.base_type,
                         'many': type_info.is_many}
